@@ -91,6 +91,9 @@ TCHAR szWAADIdxPath[MAX_PATH]; // i.e. C:/Users/Alexander/AppData/Roaming/Winamp
 TCHAR szWAADDatPath[MAX_PATH]; // i.e. C:/Users/Alexander/AppData/Roaming/Winamp/Plugins/ml/main.dat
 Database db = NULL;
 
+clientThreadData_t clientThreads[MAX_CONNECTIONS];
+int numClientThreads = 0;
+
 void pyUnescapeInPlace(char *str, int strLen) {
 	// asbdhja\\asdasd\'\asd\asd\sss\\asd
 	int skip = 0;
@@ -736,8 +739,6 @@ BOOL WINAPI HandlerRoutine(_In_ DWORD dwCtrlType) {
 
 
 int main() {
-	clientThreadData_t clientThreads[MAX_CONNECTIONS];
-	int numClientThreads = 0;
 	int ret;
 	Table *table;
 
