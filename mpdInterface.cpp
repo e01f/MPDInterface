@@ -407,7 +407,24 @@ int add(clientThreadData_t &clientData) {
 }
 
 int play(clientThreadData_t &clientData) {
-	SendMessage(hWinamp, WM_WA_IPC, 0, IPC_STARTPLAY);
+	// This starts playing at the last file in the playlist by convention, if there is a playlist. Else it will just "play".
+	int plState = SendMessage(hWinamp, WM_WA_IPC, 0, IPC_ISPLAYING);
+	int listLen = SendMessage(hWinamp, WM_WA_IPC, 0, IPC_GETLISTLENGTH);
+	if ((plState == 0) && (listLen > 0)) { // Winamp is stopped and there is a playlist
+		int listPos = SendMessage(hWinamp, WM_WA_IPC, 0, IPC_GETLISTPOS);
+		if ((listPos >= 0) && (listPos != listLen - 1)) {
+			printf("WARNING: cmd play while position != endOfList (%d/%d). Position adjusted!\r\n", listPos + 1, listLen);
+			SendMessage(hWinamp, WM_WA_IPC, listLen - 1, IPC_SETPLAYLISTPOS);
+			SendMessage(hWinamp, WM_COMMAND, MAKEWPARAM(WINAMP_BUTTON2, 0), 0);
+		} else {
+			// Stopped at end of list with end of list as position, so resume via button (rewinds list)
+			SendMessage(hWinamp, WM_COMMAND, MAKEWPARAM(WINAMP_BUTTON2, 0), 0);
+		}
+	} else {
+		// Not stopped or no list present
+		// SendMessage(hWinamp, WM_WA_IPC, 0, IPC_STARTPLAY); // Starts playback at first file in the list at all times
+		SendMessage(hWinamp, WM_COMMAND, MAKEWPARAM(WINAMP_BUTTON2, 0), 0);
+	}
 	return 0;
 }
 
