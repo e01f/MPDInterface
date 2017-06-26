@@ -18,6 +18,11 @@
 #define	IN_BUFFER_SIZE			256
 #define MAX_CONNECTIONS			15
 
+#define DS_IPC_SETXFADESTATE		0x64
+#define DS_IPC_GETXFADESTATE		0x65
+#define DS_IPC_SETXFADEDURATION		0x66
+#define DS_IPC_GETXFADEDURATION		0x67
+
 #define F(s) s, strlen(s)
 #define FW(s) (char *)s, wcslen(s)*sizeof(wchar_t)
 
@@ -85,6 +90,7 @@ struct clientThreadData_s {
 typedef struct clientThreadData_s clientThreadData_t;
 
 HWND hWinamp;
+HWND hDsIPC;
 volatile bool isRunning = true;
 int emConsume = 0;
 TCHAR szWAADIdxPath[MAX_PATH]; // i.e. C:/Users/Alexander/AppData/Roaming/Winamp/Plugins/ml/main.idx
@@ -755,7 +761,26 @@ int main() {
 		goto exitWAStage;
 	}
 	printf("Success.\r\n");
-	
+
+	// http://www.ventismedia.com/mantis/view.php?id=117
+	printf("Locating DirectSound window... ");
+	hDsIPC = NULL;
+	hDsIPC = FindWindowEx(hWinamp, 0, "dsound_ipc", NULL);
+	if (hDsIPC <= 0) {
+		printf("ERROR: could not find the running DirectSound window!\r\n");
+		goto exitWAStage;
+	}
+	printf("Success.\r\n");
+
+	printf("Initializing Winamp settings...\r\n");
+	// Disable cross fading, as this upsets our timings. We might account for it some day.
+	// TODO: Seems to work, but the state is not represented in the "konfig" (sic) window yet.
+	SendMessage(hDsIPC, WM_USER, 0x1F0, DS_IPC_SETXFADEDURATION); // TODO: Is this needed?
+	SendMessage(hDsIPC, WM_USER, 0, DS_IPC_SETXFADESTATE); // Turn off cross-fading
+	int state = SendMessage(hDsIPC, WM_USER, 0, DS_IPC_GETXFADESTATE);
+	printf("  X-Fade: %d\r\n", state);
+	printf("Done.\r\n");
+
 	printf("Loading database... ");
 	// open the media library's database by passing the filenames of the data file and index file
 	// we have to tell the database not to create the table and index
